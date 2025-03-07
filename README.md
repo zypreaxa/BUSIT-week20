@@ -1,2 +1,7 @@
 # BUSIT-week20
-## Setup instructions
+-members
+-desc
+-used technologies
+-setup instructions
+-short summary?
+
