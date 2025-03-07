@@ -1,2 +1,2 @@
 # BUSIT-week20
-Group 20
+## Setup instructions
