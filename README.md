@@ -25,4 +25,10 @@ pip install -r requirements.txt
 ```
 If any new dependencies are added later in the project, just run the command above again.
 
+## Initializing the submodule
+To initialize the submodule run: 
+```
+git submodule update --init --recursive
+```
+
 
