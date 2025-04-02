@@ -79,9 +79,7 @@ home, = ax.plot([], [], ms=10, markerfacecolor='#008cff', **marker_kwargs)  # bl
 text_objects = []
 def animate(i):
     """ Function to animate the data. Each frame it sets the data for the players and the ball."""
-    print(text_objects)
     for text in text_objects:
-        print(text)
         text.remove()  # Remove the old text objects
     text_objects.clear()  # Clear the list to prepare for new text objects
     timestamp = df_ball.iloc[i, 1]
