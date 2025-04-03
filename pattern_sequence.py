@@ -6,14 +6,14 @@ import matplotlib.patheffects as path_effects
 from mplsoccer import Pitch
 from collections import Counter
 
-# Laad de data
+# Load the data
 possession_data = pd.read_csv("possession_data_filtered.csv")
 possession_data = possession_data[['period_id', 'seconds', 'action_type', 'start_x', 'start_y',
                                    'end_x', 'end_y', 'result', 'possession_group', 'team_id']]
 
 tracking_data = pd.read_csv("tracking_data.csv")
 
-# Definieer het action type woordenboek (ongewijzigd)
+# Define the action type dictionary (unchanged)
 action_type_dict = {
     0: "pass", 1: "cross", 2: "throw_in", 3: "freekick_crossed", 4: "freekick_short",
     5: "corner_crossed", 6: "corner_short", 7: "take_on", 8: "foul", 9: "tackle",
@@ -22,20 +22,20 @@ action_type_dict = {
     18: "clearance", 19: "bad_touch", 20: "non_action", 21: "dribble", 22: "goalkick"
 }
 
-# Map numerieke codes naar leesbare actie-namen
+# Map numeric codes to readable action names
 possession_data['action_name'] = possession_data['action_type'].map(action_type_dict)
 
-# Voeg possession-lengte toe
+# Add possession length
 possession_lengths = possession_data.groupby('possession_group').size()
 possession_data['possession_length'] = possession_data['possession_group'].map(possession_lengths)
 
-# Haal alle sequenties op met minstens 10 acties
+# Retrieve all sequences with at least 10 actions
 pattern_length = 10
 all_sequences = [(group_id, group) for group_id, group in possession_data.groupby('possession_group') if len(group) >= pattern_length]
 
-print(f"Totaal aantal sequenties met minstens {pattern_length} acties: {len(all_sequences)}")
+print(f"Total amount of sequences with at least {pattern_length} actions: {len(all_sequences)}")
 
-# Functie om 10-actie-patronen te extraheren (ongewijzigd)
+# Function to extract 10-action patterns (unchanged)
 def extract_action_patterns(data, pattern_length):
     action_patterns = []
     for group_id, group in data.groupby('possession_group'):
@@ -45,11 +45,11 @@ def extract_action_patterns(data, pattern_length):
                 action_patterns.append((pattern, group.iloc[i:i+pattern_length]))
     return action_patterns
 
-# Extraheer alle 10-actie-patronen met bijbehorende data
+# Extract all 10-action patterns with associated data
 action_patterns = extract_action_patterns(possession_data, pattern_length=pattern_length)
 pattern_counter = Counter(pattern for pattern, _ in action_patterns)
 
-# Haal de 10 meest voorkomende patronen op met een representatieve dataset
+# Retrieve the 10 most common patterns with a representative data set
 top_10_patterns = []
 for pattern, count in pattern_counter.most_common(10):
     for pat, subset in action_patterns:
@@ -57,11 +57,12 @@ for pattern, count in pattern_counter.most_common(10):
             top_10_patterns.append((pattern, subset, count))
             break
 
-print(f"Totaal aantal unieke {pattern_length}-actie-patronen: {len(pattern_counter)}")
-print(f"Totaal aantal {pattern_length}-actie-patronen: {len(action_patterns)}")
-print(f"Top 10 meest voorkomende patronen geselecteerd")
+print(f"Total number of unique {pattern_length}-action patterns: {len(pattern_counter)}")
+print(f"Total number of {pattern_length}-action patterns: {len(action_patterns)}")
+print(f"Top 10 most frequent patterns selected")
 
-# Functie om actie-namen te vereenvoudigen voor visualisatie (ongewijzigd)
+
+# Function to simplify action names for visualization (unchanged)
 def simplify_action_name(action_name):
     action_mapping = {
         'pass': 'Pass', 'cross': 'Cross', 'dribble': 'Dribble', 'throw_in': 'Throw-in',
@@ -72,7 +73,7 @@ def simplify_action_name(action_name):
     }
     return action_mapping.get(action_name, action_name.capitalize())
 
-# Functie om zone-naam te bepalen op basis van coördinaten (ongewijzigd)
+# Function to determine zone name based on coordinates (unchanged)
 def get_zone_name(x, y):
     if x < 30:
         prefix = "Def."
@@ -88,7 +89,7 @@ def get_zone_name(x, y):
         suffix = "Right"
     return f"{prefix} {suffix}"
 
-# Functie om chain-diagram te maken voor een patroon (ongewijzigd)
+# Function to create chain diagram for a pattern (unchanged)
 def create_chain_diagram(pattern_data, ax, title):
     pattern_data = pattern_data.copy().reset_index(drop=True)
     n_actions = len(pattern_data)
@@ -175,4 +176,4 @@ for pattern_idx, (pattern, pattern_data, count) in enumerate(top_10_patterns):
     plt.savefig(f"pattern_{pattern_idx + 1}_with_players.png")  # Opslaan als PNG
     plt.show()
 
-print("Visualisaties van de 10 meest voorkomende 10-actie-patronen met spelerposities zijn opgeslagen als PNG-bestanden.")
+print("Visualizations of the 10 most common 10-action patterns with player positions have been saved as PNG files.")
