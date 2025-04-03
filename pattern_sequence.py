@@ -129,7 +129,7 @@ def create_chain_diagram(pattern_data, ax, title):
 
 # Create visualizations for the top 10 patterns
 for pattern_idx, (pattern, pattern_data, count) in enumerate(top_10_patterns):
-    # Maak een figuur voor het chain-diagram en meerdere pitches
+    # Create a figure for the chain diagram and multiple pitches
     fig = plt.figure(figsize=(20, 4 + 3 * len(pattern_data)))
     grid = GridSpec(len(pattern_data) + 1, 2, figure=fig, width_ratios=[3, 2], hspace=0.3)
 
