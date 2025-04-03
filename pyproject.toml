@@ -1,0 +1,22 @@
+[project]
+name = "busit"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Rimantas Liulys",email = "rimantas.liulys@student.ucll.be"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "jupyter (>=1.1.1,<2.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "psycopg2 (>=2.9.10,<3.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)",
+    "matplotlib (>=3.10.1,<4.0.0)",
+    "mplsoccer (>=1.4.0,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
