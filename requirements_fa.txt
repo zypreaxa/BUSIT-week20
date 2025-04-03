@@ -1,0 +1,6 @@
+dotenv
+ipympl
+matplotlib
+mplsoccer
+pandas
+psycopg2.binary
