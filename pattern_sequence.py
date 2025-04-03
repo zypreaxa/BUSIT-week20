@@ -127,7 +127,7 @@ def create_chain_diagram(pattern_data, ax, title):
     ax.axis('off')
     ax.set_title(title, fontsize=12, pad=10)
 
-# Maak visualisaties voor de top 10 patronen
+# Create visualizations for the top 10 patterns
 for pattern_idx, (pattern, pattern_data, count) in enumerate(top_10_patterns):
     # Maak een figuur voor het chain-diagram en meerdere pitches
     fig = plt.figure(figsize=(20, 4 + 3 * len(pattern_data)))
@@ -141,14 +141,14 @@ for pattern_idx, (pattern, pattern_data, count) in enumerate(top_10_patterns):
     title = f"Pattern {pattern_idx + 1}: {pattern_str}\n{success_rate:.1f}% success, {sequence_result}, Freq: {count}"
     create_chain_diagram(pattern_data, chain_ax, title)
 
-    # Maak een pitch voor elke actie in het patroon
+    # Make a pitch for each action in the pattern
     cmap = plt.cm.viridis
     for idx, (_, row) in enumerate(pattern_data.iterrows()):
         pitch_ax = fig.add_subplot(grid[idx + 1, :])  # Gebruik volledige breedte voor pitch
         pitch = Pitch(pitch_type='statsbomb', pitch_color='grass', line_color='white', stripe=True)
         pitch.draw(ax=pitch_ax)
 
-        # Teken alle acties tot en met de huidige actie
+        # Draw all actions up to the current action
         for j, (_, sub_row) in enumerate(pattern_data.iloc[:idx + 1].iterrows()):
             color = cmap(j / max(1, len(pattern_data) - 1))
             alpha = 0.8 if sub_row['result'] == 1 else 0.4
@@ -161,14 +161,14 @@ for pattern_idx, (pattern, pattern_data, count) in enumerate(top_10_patterns):
                           ha='center', va='center',
                           path_effects=[path_effects.withStroke(linewidth=2, foreground='black')])
 
-        # Voeg spelerposities toe op basis van het tijdstip van de huidige actie
+        # Add player positions based on time of current action
         action_time = row['seconds']
         tracking_subset = tracking_data[tracking_data['timestamp'].astype(str).str.startswith(f"17221824{int(action_time):02d}")]
         if not tracking_subset.empty:
             pitch.scatter(tracking_subset['x'], tracking_subset['y'], s=100, color='blue', alpha=0.5, ax=pitch_ax, label='Players')
             pitch_ax.legend(loc='upper right', fontsize=8)
 
-        # Titel voor deze pitch
+        # Title for this pitch
         action_display = simplify_action_name(row['action_name'])
         pitch_ax.set_title(f"Action {idx + 1}: {action_display} at {action_time}s", fontsize=10)
 
