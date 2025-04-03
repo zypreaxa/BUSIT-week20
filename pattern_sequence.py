@@ -148,18 +148,47 @@ for pattern_idx, (pattern, pattern_data, count) in enumerate(top_10_patterns):
         pitch = Pitch(pitch_type='statsbomb', pitch_color='grass', line_color='white', stripe=True)
         pitch.draw(ax=pitch_ax)
 
-        # Draw all actions up to the current action
-        for j, (_, sub_row) in enumerate(pattern_data.iloc[:idx + 1].iterrows()):
-            color = cmap(j / max(1, len(pattern_data) - 1))
-            alpha = 0.8 if sub_row['result'] == 1 else 0.4
-            pitch.arrows(sub_row['start_x'], sub_row['start_y'], 
-                         sub_row['end_x'], sub_row['end_y'],
-                         width=2, headwidth=6, headlength=6,
-                         color=color, alpha=alpha, ax=pitch_ax)
-            pitch_ax.text(sub_row['start_x'], sub_row['start_y'], str(j + 1), 
-                          color='white', fontsize=10, fontweight='bold',
-                          ha='center', va='center',
-                          path_effects=[path_effects.withStroke(linewidth=2, foreground='black')])
+    action_fig = plt.figure(figsize=(10, 7))  # Adjust the size as needed
+    action_ax = action_fig.add_subplot(111)
+    # Draw all actions up to the current action
+    for j, (_, sub_row) in enumerate(pattern_data.iloc[:idx + 1].iterrows()):
+        # Create a new figure just for the individual action (pitch)
+
+        
+        # Draw the pitch for the current action
+        pitch = Pitch(pitch_type='statsbomb', pitch_color='grass', line_color='white', stripe=True)
+        pitch.draw(ax=action_ax)
+
+        # Draw the arrow for the current action
+        color = cmap(j / max(1, len(pattern_data) - 1))
+        alpha = 0.8 if sub_row['result'] == 1 else 0.4
+        pitch.arrows(sub_row['start_x'], sub_row['start_y'], 
+                    sub_row['end_x'], sub_row['end_y'],
+                    width=2, headwidth=6, headlength=6,
+                    color=color, alpha=alpha, ax=action_ax)
+
+        # Add text for the current action
+        action_display = simplify_action_name(sub_row['action_name'])
+        action_ax.text(sub_row['start_x'], sub_row['start_y'], str(j + 1), 
+                    color='white', fontsize=10, fontweight='bold',
+                    ha='center', va='center',
+                    path_effects=[path_effects.withStroke(linewidth=2, foreground='black')])
+
+        # Add player positions based on the time of the current action
+        action_time = sub_row['seconds']
+        tracking_subset = tracking_data[tracking_data['timestamp'].astype(str).str.startswith(f"17221824{int(action_time):02d}")]
+        if not tracking_subset.empty:
+            pitch.scatter(tracking_subset['x'], tracking_subset['y'], s=100, color='blue', alpha=0.5, ax=action_ax, label='Players')
+            action_ax.legend(loc='upper right', fontsize=8)
+
+        # Title for this individual action
+        action_ax.set_title(f"Action {j + 1}: {action_display} at {action_time}s", fontsize=10)
+
+
+        # Close the individual figure to free up memory
+        plt.close(action_fig)  # Close the figure after saving
+
+
 
         # Add player positions based on time of current action
         action_time = row['seconds']
@@ -171,6 +200,11 @@ for pattern_idx, (pattern, pattern_data, count) in enumerate(top_10_patterns):
         # Title for this pitch
         action_display = simplify_action_name(row['action_name'])
         pitch_ax.set_title(f"Action {idx + 1}: {action_display} at {action_time}s", fontsize=10)
+
+        # Save the current pitch for this action as a separate PNG file
+        action_filename = f"pattern_{pattern_idx + 1}_action_{idx + 1}_step_{j + 1}_with_players.png"
+        action_fig.savefig(action_filename)  # Save the pitch as a separate PNG
+
 
     plt.suptitle(f'Top 10 Pattern {pattern_idx + 1}', fontsize=20, y=0.98)
     plt.savefig(f"pattern_{pattern_idx + 1}_with_players.png")  # Opslaan als PNG
