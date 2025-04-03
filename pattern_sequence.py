@@ -1,0 +1,178 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+import matplotlib.patheffects as path_effects
+from mplsoccer import Pitch
+from collections import Counter
+
+# Laad de data
+possession_data = pd.read_csv("possession_data_filtered.csv")
+possession_data = possession_data[['period_id', 'seconds', 'action_type', 'start_x', 'start_y',
+                                   'end_x', 'end_y', 'result', 'possession_group', 'team_id']]
+
+tracking_data = pd.read_csv("tracking_data.csv")
+
+# Definieer het action type woordenboek (ongewijzigd)
+action_type_dict = {
+    0: "pass", 1: "cross", 2: "throw_in", 3: "freekick_crossed", 4: "freekick_short",
+    5: "corner_crossed", 6: "corner_short", 7: "take_on", 8: "foul", 9: "tackle",
+    10: "interception", 11: "shot", 12: "shot_penalty", 13: "shot_freekick",
+    14: "keeper_save", 15: "keeper_claim", 16: "keeper_punch", 17: "keeper_pick_up",
+    18: "clearance", 19: "bad_touch", 20: "non_action", 21: "dribble", 22: "goalkick"
+}
+
+# Map numerieke codes naar leesbare actie-namen
+possession_data['action_name'] = possession_data['action_type'].map(action_type_dict)
+
+# Voeg possession-lengte toe
+possession_lengths = possession_data.groupby('possession_group').size()
+possession_data['possession_length'] = possession_data['possession_group'].map(possession_lengths)
+
+# Haal alle sequenties op met minstens 10 acties
+pattern_length = 10
+all_sequences = [(group_id, group) for group_id, group in possession_data.groupby('possession_group') if len(group) >= pattern_length]
+
+print(f"Totaal aantal sequenties met minstens {pattern_length} acties: {len(all_sequences)}")
+
+# Functie om 10-actie-patronen te extraheren (ongewijzigd)
+def extract_action_patterns(data, pattern_length):
+    action_patterns = []
+    for group_id, group in data.groupby('possession_group'):
+        if len(group) >= pattern_length:
+            for i in range(len(group) - pattern_length + 1):
+                pattern = tuple(group['action_name'].iloc[i:i+pattern_length].tolist())
+                action_patterns.append((pattern, group.iloc[i:i+pattern_length]))
+    return action_patterns
+
+# Extraheer alle 10-actie-patronen met bijbehorende data
+action_patterns = extract_action_patterns(possession_data, pattern_length=pattern_length)
+pattern_counter = Counter(pattern for pattern, _ in action_patterns)
+
+# Haal de 10 meest voorkomende patronen op met een representatieve dataset
+top_10_patterns = []
+for pattern, count in pattern_counter.most_common(10):
+    for pat, subset in action_patterns:
+        if pat == pattern:
+            top_10_patterns.append((pattern, subset, count))
+            break
+
+print(f"Totaal aantal unieke {pattern_length}-actie-patronen: {len(pattern_counter)}")
+print(f"Totaal aantal {pattern_length}-actie-patronen: {len(action_patterns)}")
+print(f"Top 10 meest voorkomende patronen geselecteerd")
+
+# Functie om actie-namen te vereenvoudigen voor visualisatie (ongewijzigd)
+def simplify_action_name(action_name):
+    action_mapping = {
+        'pass': 'Pass', 'cross': 'Cross', 'dribble': 'Dribble', 'throw_in': 'Throw-in',
+        'corner_crossed': 'Corner', 'corner_short': 'Corner', 'freekick_crossed': 'Free Kick',
+        'freekick_short': 'Free Kick', 'take_on': 'Take-on', 'shot': 'Shot',
+        'shot_penalty': 'Penalty', 'shot_freekick': 'FK Shot', 'interception': 'Intercept',
+        'clearance': 'Clear', 'tackle': 'Tackle', 'bad_touch': 'Poor Touch',
+    }
+    return action_mapping.get(action_name, action_name.capitalize())
+
+# Functie om zone-naam te bepalen op basis van coördinaten (ongewijzigd)
+def get_zone_name(x, y):
+    if x < 30:
+        prefix = "Def."
+    elif x < 70:
+        prefix = "Mid."
+    else:
+        prefix = "Att."
+    if y < 22:
+        suffix = "Left"
+    elif y < 44:
+        suffix = "Center"
+    else:
+        suffix = "Right"
+    return f"{prefix} {suffix}"
+
+# Functie om chain-diagram te maken voor een patroon (ongewijzigd)
+def create_chain_diagram(pattern_data, ax, title):
+    pattern_data = pattern_data.copy().reset_index(drop=True)
+    n_actions = len(pattern_data)
+    y_pos = 0.5
+    box_height = 0.3
+    spacing = 1.0
+    action_type_colors = {
+        'pass': '#66c2a5', 'cross': '#fc8d62', 'dribble': '#8da0cb', 'shot': '#e78ac3',
+        'shot_penalty': '#e78ac3', 'shot_freekick': '#e78ac3', 'take_on': '#a6d854',
+        'throw_in': '#ffd92f', 'freekick_crossed': '#b3b3b3', 'freekick_short': '#b3b3b3',
+        'corner_crossed': '#e5c494', 'corner_short': '#e5c494', 'interception': '#ffed6f',
+        'clearance': '#d9d9d9', 'tackle': '#bc80bd', 'bad_touch': '#d9d9d9',
+    }
+    prev_box_end = None
+    for i, row in pattern_data.iterrows():
+        action_name = row['action_name']
+        zone = get_zone_name(row['start_x'], row['start_y'])
+        result = "✓" if row['result'] == 1 else "✗"
+        action_display = simplify_action_name(action_name)
+        label = f"{i+1}. {action_display}\n{zone}\n{result}"
+        box_color = action_type_colors.get(action_name, '#d9d9d9')
+        box_alpha = 1.0 if row['result'] == 1 else 0.6
+        box_left = i * spacing
+        box_right = box_left + 0.8
+        rect = plt.Rectangle((box_left, y_pos - box_height/2), 0.8, box_height, 
+                             facecolor=box_color, alpha=box_alpha, edgecolor='black', linewidth=1)
+        ax.add_patch(rect)
+        ax.text(box_left + 0.4, y_pos, label, ha='center', va='center', fontsize=9, fontweight='bold')
+        if prev_box_end is not None:
+            ax.arrow(prev_box_end, y_pos, box_left - prev_box_end, 0, 
+                     head_width=0.05, head_length=0.05, fc='black', ec='black', length_includes_head=True)
+        prev_box_end = box_right
+    ax.set_xlim(-0.2, n_actions * spacing + 0.2)
+    ax.set_ylim(y_pos - box_height - 0.2, y_pos + box_height + 0.2)
+    ax.axis('off')
+    ax.set_title(title, fontsize=12, pad=10)
+
+# Maak visualisaties voor de top 10 patronen
+for pattern_idx, (pattern, pattern_data, count) in enumerate(top_10_patterns):
+    # Maak een figuur voor het chain-diagram en meerdere pitches
+    fig = plt.figure(figsize=(20, 4 + 3 * len(pattern_data)))
+    grid = GridSpec(len(pattern_data) + 1, 2, figure=fig, width_ratios=[3, 2], hspace=0.3)
+
+    # Chain-diagram
+    chain_ax = fig.add_subplot(grid[0, 0])
+    pattern_str = " -> ".join(simplify_action_name(action) for action in pattern)
+    success_rate = pattern_data['result'].mean() * 100
+    sequence_result = "Goal" if (pattern_data['action_type'].isin([11, 12, 13]) & (pattern_data['result'] == 1)).any() else "No Goal"
+    title = f"Pattern {pattern_idx + 1}: {pattern_str}\n{success_rate:.1f}% success, {sequence_result}, Freq: {count}"
+    create_chain_diagram(pattern_data, chain_ax, title)
+
+    # Maak een pitch voor elke actie in het patroon
+    cmap = plt.cm.viridis
+    for idx, (_, row) in enumerate(pattern_data.iterrows()):
+        pitch_ax = fig.add_subplot(grid[idx + 1, :])  # Gebruik volledige breedte voor pitch
+        pitch = Pitch(pitch_type='statsbomb', pitch_color='grass', line_color='white', stripe=True)
+        pitch.draw(ax=pitch_ax)
+
+        # Teken alle acties tot en met de huidige actie
+        for j, (_, sub_row) in enumerate(pattern_data.iloc[:idx + 1].iterrows()):
+            color = cmap(j / max(1, len(pattern_data) - 1))
+            alpha = 0.8 if sub_row['result'] == 1 else 0.4
+            pitch.arrows(sub_row['start_x'], sub_row['start_y'], 
+                         sub_row['end_x'], sub_row['end_y'],
+                         width=2, headwidth=6, headlength=6,
+                         color=color, alpha=alpha, ax=pitch_ax)
+            pitch_ax.text(sub_row['start_x'], sub_row['start_y'], str(j + 1), 
+                          color='white', fontsize=10, fontweight='bold',
+                          ha='center', va='center',
+                          path_effects=[path_effects.withStroke(linewidth=2, foreground='black')])
+
+        # Voeg spelerposities toe op basis van het tijdstip van de huidige actie
+        action_time = row['seconds']
+        tracking_subset = tracking_data[tracking_data['timestamp'].astype(str).str.startswith(f"17221824{int(action_time):02d}")]
+        if not tracking_subset.empty:
+            pitch.scatter(tracking_subset['x'], tracking_subset['y'], s=100, color='blue', alpha=0.5, ax=pitch_ax, label='Players')
+            pitch_ax.legend(loc='upper right', fontsize=8)
+
+        # Titel voor deze pitch
+        action_display = simplify_action_name(row['action_name'])
+        pitch_ax.set_title(f"Action {idx + 1}: {action_display} at {action_time}s", fontsize=10)
+
+    plt.suptitle(f'Top 10 Pattern {pattern_idx + 1}', fontsize=20, y=0.98)
+    plt.savefig(f"pattern_{pattern_idx + 1}_with_players.png")  # Opslaan als PNG
+    plt.show()
+
+print("Visualisaties van de 10 meest voorkomende 10-actie-patronen met spelerposities zijn opgeslagen als PNG-bestanden.")
