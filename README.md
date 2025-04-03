@@ -23,7 +23,7 @@ To install all dependencies, run
 ```
 pip install -r requirements.txt
 ```
-If any new dependencies are added later in the project, just run the command above again.
+If any new dependencies are added in later distributions, you will need to run the command above again.
 
 ## Initializing the submodule
 If the submodule folders appear empty, an initialization will be needed.
@@ -31,6 +31,9 @@ To initialize the submodule run:
 ```
 git submodule update --init --recursive
 ```
+---
+## Basic project structure
+This repository consists of two submodules that were used as resources and the model. The submodules are not required for the model to run. The model can be accessed in the notebooks/---.ipynb file.
 
 
 
